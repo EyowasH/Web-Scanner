@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "Scan": {
+      "title": "Scan",
+      "description": "Represents a security scan for a target URL.",
+      "type": "object",
+      "properties": {
+        "url": { "type": "string" },
+        "status": { "type": "string", "enum": ["running", "completed", "failed"] },
+        "progress": { "type": "number" },
+        "vulnerabilities": {
+           "type": "array",
+           "items": { "type": "object" }
+        },
+        "aiSummary": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["url", "status", "progress", "createdAt"]
+    }
+  },
+  "firestore": {
+    "scans": {
+      "schema": { "$ref": "#/entities/Scan" },
+      "description": "Collection of all vulnerability scans."
+    }
+  }
+}

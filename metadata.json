@@ -1,0 +1,8 @@
+{
+  "name": "Elumexa Free Scan",
+  "description": "A no-login, instant web vulnerability scanning platform. User simply enters a URL and clicks SCAN. No authentication, no signup, no registration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

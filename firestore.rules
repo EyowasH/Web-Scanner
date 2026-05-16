@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner() { return isSignedIn() && existing().userId == request.auth.uid; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Validation Blueprint for Scan Entity
+    function isValidScan(data) {
+      return data.keys().hasAll(['url', 'status', 'progress', 'createdAt', 'userId']) &&
+             data.keys().size() >= 5 &&
+             data.keys().size() <= 7 &&
+             data.url is string && data.url.size() <= 2048 &&
+             data.status is string && data.status in ['running', 'completed', 'failed'] &&
+             data.progress is number && data.progress >= 0 && data.progress <= 100 &&
+             (data.keys().hasAny(['vulnerabilities']) ? (data.vulnerabilities is list && data.vulnerabilities.size() <= 1000) : true) &&
+             (data.keys().hasAny(['aiSummary']) ? (data.aiSummary is string && data.aiSummary.size() <= 50000) : true);
+    }
+
+    match /scans/{scanId} {
+      // allow read to anyone who has the scanId (so they can share links), or just owner
+      allow get: if isValidId(scanId);
+      
+      // only owner can list their own scans
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+
+      allow create: if isValidId(scanId) &&
+                    isValidScan(incoming()) &&
+                    incoming().createdAt == request.time;
+
+      allow update: if isValidId(scanId) &&
+                    isValidScan(incoming()) &&
+                    incoming().userId == existing().userId &&
+                    incoming().createdAt == existing().createdAt &&
+                    (
+                      // Update progress and status
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'progress', 'vulnerabilities', 'aiSummary'])
+                    );
+                    
+      allow delete: if false;
+    }
+  }
+}
